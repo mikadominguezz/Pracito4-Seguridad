@@ -14,7 +14,7 @@ interface InvoiceRow {
 }
 
 class InvoiceService {
-  static async list( userId: string, status?: string, operator?: string): Promise<Invoice[]> {
+  /* static async list( userId: string, status?: string, operator?: string): Promise<Invoice[]> {
     let q = db<InvoiceRow>('invoices').where({ userId: userId });
     if (status) q = q.andWhereRaw(" status "+ operator + " '"+ status +"'");
     const rows = await q.select();
@@ -26,6 +26,39 @@ class InvoiceService {
       status: row.status} as Invoice
     ));
     return invoices;
+  } */
+ static async list(userId: string, status?: string, operator?: string): Promise<Invoice[]> {
+    let q = db<InvoiceRow>("invoices").where({ userId: userId })
+
+    if (status && operator) {
+      // Validar operadores permitidos
+      const allowedOperators = ["=", "!=", "<>", "<", ">", "<=", ">="]
+      if (!allowedOperators.includes(operator)) {
+        throw new Error("Invalid operator")
+      }
+
+      // Validar estados permitidos
+      const allowedStatuses = ["pending", "paid", "cancelled", "overdue"]
+      if (!allowedStatuses.includes(status)) {
+        throw new Error("Invalid status")
+      }
+
+      // Usar consulta parametrizada segura
+      q = q.andWhere("status", operator, status)
+    }
+
+    const rows = await q.select()
+    const invoices = rows.map(
+      (row) =>
+        ({
+          id: row.id,
+          userId: row.userId,
+          amount: row.amount,
+          dueDate: row.dueDate,
+          status: row.status,
+        }) as Invoice,
+    )
+    return invoices
   }
 
   static async setPaymentCard(

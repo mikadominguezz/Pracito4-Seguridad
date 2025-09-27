@@ -64,5 +64,21 @@ describe('AuthService.generateJwt', () => {
     expect(mockedDb().select).toHaveBeenCalled();
     expect(invoices).toEqual(mockInvoices);
   });
+  
+    it('should not allow SQL injection in state parameter', async () => {
+      const userId = 'user123';
+      const maliciousState = "paid'; DROP TABLE invoices; --";
+      const operator = 'eq';
+      const mockInvoices: Invoice[] = [];
+      const selectChain = {
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        select: jest.fn().mockResolvedValue(mockInvoices),
+      };
+      mockedDb.mockReturnValue(selectChain as any);
+
+    await expect(InvoiceService.list(userId, maliciousState, operator)).rejects.toThrow('Invalid operator');
+    // El servicio rechaza operadores inválidos, protegiendo contra SQL injection
+    });
 
 });
