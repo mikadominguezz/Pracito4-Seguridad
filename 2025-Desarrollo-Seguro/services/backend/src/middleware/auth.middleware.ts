@@ -14,8 +14,16 @@ export const authenticateJWT = (req: Request, res: Response, next: NextFunction)
 
   const token = authHeader.split(' ')[1];
 
+  // Vulnerable: clave secreta hardcodeada
+  // const decoded = jwt.verify(token, "secreto_super_seguro");
+
+  // Mitigación: usar variable de entorno
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) {
+    return res.status(500).json({ message: 'JWT secret not configured' });
+  }
   try {
-    const decoded = jwt.verify(token, "secreto_super_seguro");
+    const decoded = jwt.verify(token, jwtSecret);
     (req as any).user = decoded;
     next();
   } catch (err) {
