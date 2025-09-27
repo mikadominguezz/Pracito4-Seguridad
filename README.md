@@ -1,4 +1,4 @@
-# Practico2-Seguridad
+# Practico 2 - Desarollo de Software Seguro
 
 ## Detección de Vulnerabilidades:
 
