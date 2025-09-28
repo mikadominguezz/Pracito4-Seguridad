@@ -105,3 +105,33 @@ Para mitigarlo primero agregué una validación para que solo se acepten nombres
 
 ---
 ### 5. Falta de autorización (Missing Authorization).
+
+Estan en las rutas del usuario: user.routes.ts:
+
+    router.post('/', routes.createUser);
+    router.put('/:id', routes.updateUser);
+
+Estas rutas no tienen ningún middleware de autentiación ni autorización lo que significa que cualquier usuario (incluso sin estar autenticado) puede crear o modificar usuarios.
+
+Para explotarla primero haces una solicitud POST a users con datos de usuario, sin enviar ningún token de autenticacion; el backend creará el usuario de igual forma. Después haces una solicitud PUT a /users/:id con datos modificados sin enviar token y el backend actualiza el usuario aunque no tengas permisos para hacerlo.
+
+![missingAuthorizationCrearUsuarioEjemplo](2025-Desarrollo-Seguro/services/frontend/src/photos/missingAuthorizationCrearUsuarioEjemplo.png)
+
+El error que se muestra es que el email/nombre ya existe pero ta lo importante es que el backend procesó la solicitud sin requerir autenticación ni autorización.
+
+![missingAuthorizacionModificarUsuariosEjemplo.](2025-Desarrollo-Seguro/services/frontend/src/photos/missingAuthorizacionModificarUsuariosEjemplo.png)
+
+Ahora para mitigarlo, agregué el middleware de autenticación a esas rutas:
+
+    router.post('/', authMiddleware, routes.createUser);
+    router.put('/:id', authMiddleware, routes.updateUser);
+
+![missingAuthorizationModificarUsuarioEjemploSolucionado1](2025-Desarrollo-Seguro/services/frontend/src/photos/missingAuthorizationModificarUsuarioEjemploSolucionado1.png)
+![missingAuthorizacionModificarUsuariosEjemploSolucionado1](2025-Desarrollo-Seguro/services/frontend/src/photos/missingAuthorizationCrearUsuarioEjemploSolucionado1.png)
+
+Pero si pongo la autorización con el token, sí me deja.
+
+![missingAuthorizationCrearUsuarioEjemploSolucionado2](2025-Desarrollo-Seguro/services/frontend/src/photos/missingAuthorizationCrearUsuarioEjemploSolucionado2.png)
+
+
+
