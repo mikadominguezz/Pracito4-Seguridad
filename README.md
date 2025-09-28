@@ -23,6 +23,10 @@ Después de corregirlo, se modifiqué el archivo invoiceService.test.ts poniénd
 
     await expect(InvoiceService.list(userId, maliciousState, operator)).rejects.toThrow('Invalid operator');
 
+Así se verificó que se haya mitigado la vulnerabilidad:
+
+![sqlInjectionEjemplo](2025-Desarrollo-Seguro/services/frontend/src/photos/sqlInjectionEjemplo.png)
+
 ---
 ### 2. Credenciales embebidas (Hard Coded Credentials)
 
