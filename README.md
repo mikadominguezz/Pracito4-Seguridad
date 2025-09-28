@@ -32,7 +32,7 @@ Esta vulnerabilidad estaba en el archivo auth.middleware.ts:
 
 En este caso, un atacante puede acceder al repositorio/despliegue donde el código está disponible y leer la clave secreta. Después puede crear un token jwt falso y lo firma usando la clave; despupes envía el token al backend, específicamente en el header (_Authorization: Bearer <token_falso>_) y le da acceso como si fuera el usuario del payload.
 
-Para mitigarlo modifiqué el código para que la clave secreta la tome desde una variable de entorno que está creada en .env.example en el backend. Ahora sí la clave ya no está expuesta.
+Para mitigarlo modifiqué el código para que la clave secreta la tome desde una variable de entorno que está creada en .env en el backend. Ahora sí la clave ya no está expuesta.
 
 Lo probé en Postman para verificar que estuviera andando con un POST /auth/login y un GET /invoices:
 
@@ -67,4 +67,15 @@ Y hará una solicitud POST con los datos de la tarjeta.
 Hice un ejemplo de explotación donde el backend intentó conectarse a la dirección que puse en el campo (en este caso 127.0.0.1:5001).
 
 ![SRRFEjemplo](2025-Desarrollo-Seguro/services/frontend/src/photos/srrfEjemplo.png)
+
+Ahora que lo mitigué editanto el archivo paymentBrand:
+
+    const allowedBrands = ['visa', 'mastercard', 'amex'];
+    if (!allowedBrands.includes(paymentBrand)) {
+    throw new Error('Invalid payment brand');
+    }
+
+Si el valor no está en la lista, el backend rechaza la solicitud y no intenta conectarse a la URL que le da el usuario.
+
+![SRRFEjemploSolucionado](2025-Desarrollo-Seguro/services/frontend/src/photos/srrfEjemploSolucionado.png)
 
