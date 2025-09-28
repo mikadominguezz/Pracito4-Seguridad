@@ -79,3 +79,29 @@ Si el valor no está en la lista, el backend rechaza la solicitud y no intenta c
 
 ![SRRFEjemploSolucionado](2025-Desarrollo-Seguro/services/frontend/src/photos/srrfEjemploSolucionado.png)
 
+---
+### 4. Recorrido de directorios (Path Traversal)
+
+Esta vulnerabilidad está en el método getReceipt del archivo invoiceService.ts:
+
+    const filePath = `/invoices/${pdfName}`;
+    const content = await fs.readFile(filePath, 'utf-8');
+
+En el parámetro pdfName viene directamente la solicitud del usuario y se usa para construir la ruta del archivo sin validación alguna.
+
+Para explotar esta vulnerabilidad primero se hace una solicitud al endpoint que llama ese método, y luego en el parámetro pdfName le ingresas un valor malicioso: **../../../../etc/passwd**. 
+
+El backend va a construir la ruta y tratará de leer el archivo y terminará devolviendo lo que le pidieron; dejando que el atacante pueda acceder a archivos sensibles.
+
+Hice una prueba con postman para verificarlo:
+
+![pathTraversalEjemplo](2025-Desarrollo-Seguro/services/frontend/src/photos/pathTraversalEjemplo.png)
+
+El backend respondió **200 OK** y trató de devolver el contenido de passwd, aunque postman no pudo mostrarlo como pdf.
+
+Para mitigarlo primero agregué una validación para que solo se acepten nombres de archivos seguros y que terminen en .pdf y después con con un path.join verifiqué que el archivo esté dentro de lo permitido.
+
+![pathTraversalEjemploSolucionado](2025-Desarrollo-Seguro/services/frontend/src/photos/pathTraversalEjemploSolucionado.png)
+
+---
+### 5. Falta de autorización (Missing Authorization).
