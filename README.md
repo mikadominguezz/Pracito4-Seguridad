@@ -133,5 +133,37 @@ Pero si pongo la autorización con el token, sí me deja.
 
 ![missingAuthorizationCrearUsuarioEjemploSolucionado2](2025-Desarrollo-Seguro/services/frontend/src/photos/missingAuthorizationCrearUsuarioEjemploSolucionado2.png)
 
+---
+### 6. Inyección de comandos en plantillas (Template Command Injection).
 
+Esta vulnerabilidad está en authService.ts:
+
+    const template = `
+    <html>
+        <body>
+        <h1>Hello ${user.first_name} ${user.last_name}</h1>
+        <p>Click <a href="${ link }">here</a> to activate your account.</p>
+        </body>
+    </html>`;
+    const htmlBody = ejs.render(template);
+
+Los valores user.first_name, user.last_name y link vienen de datos de usuario y se intercalan directamente en la plantilla.
+
+Para explotarla primero te registrar o creas un usuario con un nombre malicioso, el backend genera el email usando esos valores y cuando el destinatario abre el mail, el código malicioso se ejecuta en su navegador; con esto se logra un ataque XSS o manipulación del contenido del mail.
+
+![templateCommandInjectionEjemplo](2025-Desarrollo-Seguro/services/frontend/src/photos/templateCommandInjectionEjemplo.png)
+
+Ahora reemplacé los caracters <, >, &, ", ', por sus entidades html y se usa ejs para renderizar la plantilla:
+
+    const htmlBody = ejs.render(template, {
+    firstName: escapeHtml(user.first_name),
+    lastName: escapeHtml(user.last_name),
+    link: link
+    });
+
+Ahora al mitigarlo, me sigue dejando crear los usuarios, porque no bloquea la creación de usuarios, sino que evita que el código malicioso se ejecute en la plantilla del email. Entonces aunque cree un usuario con datos como los que puse anteriormente, convierte los caracteres en texto seguro antes de renderizar el mail; el usuario se crea pero el codigo malicioso no se ejecuta en el mail.
+
+Para revisar el mail abrí Mailhod con el mail y usuario que cree:
+
+![templateCommandInjectionEjemploSolucionado](2025-Desarrollo-Seguro/services/frontend/src/photos/templateCommandInjectionEjemploSolucionado.png)
 
