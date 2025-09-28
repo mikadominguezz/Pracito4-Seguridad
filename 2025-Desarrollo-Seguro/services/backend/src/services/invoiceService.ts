@@ -69,10 +69,28 @@ class InvoiceService {
     ccv: string,
     expirationDate: string
   ) {
-    // use axios to call http://paymentBrand/payments as a POST request
-    // with the body containing ccNumber, ccv, expirationDate
-    // and handle the response accordingly
-    const paymentResponse = await axios.post(`http://${paymentBrand}/payments`, {
+    // Vulnerable: SSRF, paymentBrand no validado
+    // const paymentResponse = await axios.post(`http://${paymentBrand}/payments`, {
+    //   ccNumber,
+    //   ccv,
+    //   expirationDate
+    // });
+    // if (paymentResponse.status !== 200) {
+    //   throw new Error('Payment failed');
+    // }
+
+    // Mitigación: Validar paymentBrand contra una lista blanca
+    const allowedBrands = ['visa', 'mastercard', 'amex'];
+    if (!allowedBrands.includes(paymentBrand)) {
+      throw new Error('Invalid payment brand');
+    }
+    const paymentApiMap: Record<string, string> = {
+      visa: 'payments.visa.com',
+      mastercard: 'payments.mastercard.com',
+      amex: 'payments.amex.com',
+    };
+    const apiUrl = paymentApiMap[paymentBrand];
+    const paymentResponse = await axios.post(`https://${apiUrl}/payments`, {
       ccNumber,
       ccv,
       expirationDate
@@ -84,8 +102,8 @@ class InvoiceService {
     // Update the invoice status in the database
     await db('invoices')
       .where({ id: invoiceId, userId })
-      .update({ status: 'paid' });  
-    };
+      .update({ status: 'paid' });
+  }
   static async  getInvoice( invoiceId:string): Promise<Invoice> {
     const invoice = await db<InvoiceRow>('invoices').where({ id: invoiceId }).first();
     if (!invoice) {
