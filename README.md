@@ -198,6 +198,7 @@ En este caso como no hay ninguna base de datos no se puede probar explotar la vu
 Para mitigarla hice que las contraseñas se almacenen y comparen usando bycrypt(que las hashea y compara las hasheadas y hay que hacer un **npm install bcryptjs**).
 
 En la funcion createUser:
+
     const hashedPassword = await bcrypt.hash(user.password, 12);
     await db<UserRow>('users')
     .insert({
@@ -217,6 +218,7 @@ En la función updateUser:
     });
 
 En la función authenticate:
+
     const valid = await bcrypt.compare(password, user.password); // ← mitigación
     if (!valid) throw new Error('Invalid password');
 
