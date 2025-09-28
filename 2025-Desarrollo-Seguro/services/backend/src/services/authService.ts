@@ -5,6 +5,7 @@ import db from '../db';
 import { User,UserRow } from '../types/user';
 import jwtUtils from '../utils/jwt';
 import ejs from 'ejs';
+import bcrypt from 'bcryptjs';
 
 const RESET_TTL = 1000 * 60 * 60;         // 1h
 const INVITE_TTL = 1000 * 60 * 60 * 24 * 7; // 7d
@@ -20,10 +21,24 @@ class AuthService {
     // create invite token
     const invite_token = crypto.randomBytes(6).toString('hex');
     const invite_token_expires = new Date(Date.now() + INVITE_TTL);
+    // Vulnerable: almacenamiento en texto plano
+    // await db<UserRow>('users')
+    //   .insert({
+    //     username: user.username,
+    //     password: user.password,
+    //     email: user.email,
+    //     first_name: user.first_name,
+    //     last_name:  user.last_name,
+    //     invite_token,
+    //     invite_token_expires,
+    //     activated: false
+    //   });
+    // Mitigación: almacenar contraseña hasheada
+  const hashedPassword = await bcrypt.hash(user.password, 12);
     await db<UserRow>('users')
       .insert({
         username: user.username,
-        password: user.password,
+        password: hashedPassword,
         email: user.email,
         first_name: user.first_name,
         last_name:  user.last_name,
@@ -90,11 +105,23 @@ class AuthService {
       .where({ id: user.id })
       .first();
     if (!existing) throw new Error('User not found');
+    // Vulnerable: actualización en texto plano
+    // await db<UserRow>('users')
+    //   .where({ id: user.id })
+    //   .update({
+    //     username: user.username,
+    //     password: user.password,
+    //     email: user.email,
+    //     first_name: user.first_name,
+    //     last_name: user.last_name
+    //   });
+    // Mitigación: actualizar con contraseña hasheada
+  const hashedPassword = await bcrypt.hash(user.password, 12);
     await db<UserRow>('users')
       .where({ id: user.id })
       .update({
         username: user.username,
-        password: user.password,
+        password: hashedPassword,
         email: user.email,
         first_name: user.first_name,
         last_name: user.last_name
@@ -108,7 +135,11 @@ class AuthService {
       .andWhere('activated', true)
       .first();
     if (!user) throw new Error('Invalid email or not activated');
-    if (password != user.password) throw new Error('Invalid password');
+    // Vulnerable: comparación en texto plano
+    // if (password != user.password) throw new Error('Invalid password');
+    // Mitigación: comparar usando bcrypt
+  const valid = await bcrypt.compare(password, user.password);
+    if (!valid) throw new Error('Invalid password');
     return user;
   }
 

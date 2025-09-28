@@ -24,7 +24,7 @@ Después de corregirlo, se modifiqué el archivo invoiceService.test.ts poniénd
     await expect(InvoiceService.list(userId, maliciousState, operator)).rejects.toThrow('Invalid operator');
 
 ---
-### 2. Credenciales embebidas (Hard Coded Credentials).
+### 2. Credenciales embebidas (Hard Coded Credentials)
 
 Esta vulnerabilidad estaba en el archivo auth.middleware.ts:
 
@@ -104,7 +104,7 @@ Para mitigarlo primero agregué una validación para que solo se acepten nombres
 ![pathTraversalEjemploSolucionado](2025-Desarrollo-Seguro/services/frontend/src/photos/pathTraversalEjemploSolucionado.png)
 
 ---
-### 5. Falta de autorización (Missing Authorization).
+### 5. Falta de autorización (Missing Authorization)
 
 Estan en las rutas del usuario: user.routes.ts:
 
@@ -134,7 +134,7 @@ Pero si pongo la autorización con el token, sí me deja.
 ![missingAuthorizationCrearUsuarioEjemploSolucionado2](2025-Desarrollo-Seguro/services/frontend/src/photos/missingAuthorizationCrearUsuarioEjemploSolucionado2.png)
 
 ---
-### 6. Inyección de comandos en plantillas (Template Command Injection).
+### 6. Inyección de comandos en plantillas (Template Command Injection)
 
 Esta vulnerabilidad está en authService.ts:
 
@@ -163,7 +163,57 @@ Ahora reemplacé los caracters <, >, &, ", ', por sus entidades html y se usa ej
 
 Ahora al mitigarlo, me sigue dejando crear los usuarios, porque no bloquea la creación de usuarios, sino que evita que el código malicioso se ejecute en la plantilla del email. Entonces aunque cree un usuario con datos como los que puse anteriormente, convierte los caracteres en texto seguro antes de renderizar el mail; el usuario se crea pero el codigo malicioso no se ejecuta en el mail.
 
-Para revisar el mail abrí Mailhod con el mail y usuario que cree:
+Para revisar el mail abrí Mailhod con el mail y usuario que cree y confirma que la mitigación anda.:
 
 ![templateCommandInjectionEjemploSolucionado](2025-Desarrollo-Seguro/services/frontend/src/photos/templateCommandInjectionEjemploSolucionado.png)
 
+---
+### 7. Almacenamiento inseguro
+
+La ubicación del problema está en el archivo authService.ts; la contraseña del usuario se almacena directamente:
+
+    await db<UserRow>('users')
+    .insert({
+        username: user.username,
+        password: user.password, // <-- aquí está el problema
+        ...
+    });
+
+Y en la autenticación:
+
+    if (password != user.password) throw new Error('Invalid password');
+
+Esto hace que las contraseñas se guarden en texto plano en la db.
+
+Para explotar la vulnerabilidad, un atacante que obtenga acceso a la base de datos (por ejemplo mediante sql injection, y así) podrá ver las contraseñas de los usuarios, incluso no necesita ningún dato especial para explotarla, solo acceso a la tabla **users**.
+
+Con tan solo ejecutar una consulta sql como: _SELECT username, password FROM users;_ esto revelará todas las contraseñas sin ser protegidas.
+
+En este caso como no hay ninguna base de datos no se puede probar explotar la vulnerabilidad, pero lo corrijo igual.
+
+Para mitigarla hice que las contraseñas se almacenen y comparen usando bycrypt(que las hashea y compara las hasheadas y hay que hacer un **npm install bcryptjs**).
+
+En la funcion createUser:
+    const hashedPassword = await bcrypt.hash(user.password, 12);
+    await db<UserRow>('users')
+    .insert({
+        username: user.username,
+        password: hashedPassword, // ← mitigación
+        ...
+    });
+
+En la función updateUser:
+
+    const hashedPassword = await bcrypt.hash(user.password, 12);
+    await db<UserRow>('users')
+    .where({ id: user.id })
+    .update({
+        password: hashedPassword, // ← mitigación
+        ...
+    });
+
+En la función authenticate:
+    const valid = await bcrypt.compare(password, user.password); // ← mitigación
+    if (!valid) throw new Error('Invalid password');
+
+Y depsués importé el bcryptjs.
