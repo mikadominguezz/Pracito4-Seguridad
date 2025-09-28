@@ -1,9 +1,11 @@
 import jwt from 'jsonwebtoken';
 
+
 const generateToken = (userId: string) => {
+  const jwtSecret = process.env.JWT_SECRET || "secreto_super_seguro";
   return jwt.sign(
-    { id: userId }, 
-    "secreto_super_seguro", 
+    { id: userId },
+    jwtSecret,
     { expiresIn: '1h' }
   );
 };

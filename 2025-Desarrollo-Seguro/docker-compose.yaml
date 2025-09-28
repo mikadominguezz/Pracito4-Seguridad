@@ -28,6 +28,8 @@ services:
       - SMTP_PORT=1025
       - SMTP_USER=seed
       - SMTP_PASS=seed
+    env_file:
+      - ./services/backend/.env
     restart: unless-stopped
     depends_on:
       postgres:
