@@ -1,15 +1,18 @@
+
 import { Router } from 'express';
 import routes from '../controllers/authController';
+import authMiddleware from '../middleware/auth.middleware';
 
 const router = Router();
 
-// POST /auth to create a new user
-// This route is typically used for user registration
-router.post('/', routes.createUser);
 
-// PUT /auth/:id to update an existing user
-// This route is typically used for updating user details
-router.put('/:id', routes.updateUser);
+// Vulnerable: rutas sin autenticación
+// router.post('/', routes.createUser);
+// router.put('/:id', routes.updateUser);
+
+// Mitigación: proteger rutas con autenticación
+router.post('/', authMiddleware, routes.createUser);
+router.put('/:id', authMiddleware, routes.updateUser);
 
 
 
