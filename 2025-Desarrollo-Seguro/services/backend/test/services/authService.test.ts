@@ -348,4 +348,90 @@ describe('AuthService.generateJwt', () => {
     expect((decoded as any).id).toBe(userId);
   });
 
+  /**
+   * PRUEBA DE SEGURIDAD: Template Injection
+   * 
+   * Esta prueba verifica que el sistema esté protegido contra Template Injection
+   * al crear un nuevo usuario. Un atacante podría intentar inyectar código
+   * malicioso en los campos first_name o last_name que se renderizarán en
+   * el email de activación.
+   * 
+   * Escenario de ataque:
+   * - El atacante registra un usuario con código malicioso en first_name/last_name
+   * - Si el template EJS no está protegido, el código se ejecutará
+   * - Esto podría permitir XSS en el email o ejecución de código
+   * 
+   * Mitigación esperada:
+   * - Los datos deben ser escapados antes de renderizarse en el template
+   * - El HTML malicioso debe aparecer como texto plano en el email
+   * 
+   * Esta prueba debe:
+   * - FALLAR en la rama 'main' (código vulnerable con interpolación directa)
+   * - PASAR en la rama 'practico-2' (código mitigado con escapeHtml)
+   */
+  it('should prevent Template Injection in email templates', async () => {
+    // Payload malicioso que intenta inyectar código JavaScript en el template
+    // Si el template es vulnerable, esto podría ejecutar código o inyectar HTML
+    const maliciousUser = {
+      id: 'user-malicious',
+      email: 'attacker@evil.com',
+      password: 'password123',
+      // Intento de inyección de código JavaScript que se ejecutaría en el template
+      first_name: '<%= process.exit(1) %>',
+      // Intento de inyección HTML/XSS
+      last_name: '<script>alert("XSS")</script>',
+      username: 'attacker',
+    } as User;
+
+    // Mock: simular que no existe un usuario previo
+    const selectChain = {
+      where: jest.fn().mockReturnThis(),
+      orWhere: jest.fn().mockReturnThis(),
+      first: jest.fn().mockResolvedValue(null)
+    };
+
+    // Mock: simular inserción exitosa en la base de datos
+    const insertChain = {
+      returning: jest.fn().mockResolvedValue([maliciousUser]),
+      insert: jest.fn().mockReturnThis()
+    };
+
+    mockedDb
+      .mockReturnValueOnce(selectChain as any)
+      .mockReturnValueOnce(insertChain as any);
+
+    // Ejecutar la creación del usuario
+    await AuthService.createUser(maliciousUser);
+
+    // Verificar que se envió un email
+    expect(mockedNodemailer.createTransport().sendMail).toHaveBeenCalled();
+
+    // Obtener el contenido HTML del email enviado
+    const emailCall = (mockedNodemailer.createTransport().sendMail as jest.Mock).mock.calls[0][0];
+    const htmlContent = emailCall.html;
+
+    // VERIFICACIÓN DE SEGURIDAD:
+    // El contenido malicioso debe estar escapado (convertido a entidades HTML)
+    // y NO debe ejecutarse como código
+    
+    // Verificar que NO hay tags HTML maliciosos sin escapar
+    // Si estuviera vulnerable, aparecería "<script>alert" ejecutable
+    expect(htmlContent).not.toMatch(/<script>alert\(/);
+    
+    // Verificar que los datos están escapados de alguna forma
+    // Puede ser escape simple (&lt;) o doble escape (&amp;lt;)
+    // Lo importante es que NO sea HTML ejecutable
+    const hasSimpleEscape = htmlContent.includes('&lt;script&gt;');
+    const hasDoubleEscape = htmlContent.includes('&amp;lt;script&amp;gt;');
+    expect(hasSimpleEscape || hasDoubleEscape).toBe(true);
+    
+    // Verificar que el payload de Template Injection NO se ejecutó
+    // Si "<%= process.exit(1) %>" se ejecutara, el proceso terminaría
+    // Al estar escapado, aparece como texto en el HTML
+    expect(htmlContent).toMatch(/process\.exit|&amp;lt;%=|&lt;%=/);
+    
+    // Verificar que NO hay inyección HTML directa ejecutable
+    expect(htmlContent).not.toContain('<script>alert("XSS")</script>');
+  });
+
 });
