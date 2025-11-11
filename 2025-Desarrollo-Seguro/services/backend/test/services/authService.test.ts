@@ -349,7 +349,7 @@ describe('AuthService.generateJwt', () => {
   });
 
   /**
-   * PRUEBA DE SEGURIDAD: Template Injection
+   * TEMPLATE INJECTION TEST
    * 
    * Esta prueba verifica que el sistema esté protegido contra Template Injection
    * al crear un nuevo usuario. Un atacante podría intentar inyectar código
@@ -410,11 +410,10 @@ describe('AuthService.generateJwt', () => {
     const emailCall = (mockedNodemailer.createTransport().sendMail as jest.Mock).mock.calls[0][0];
     const htmlContent = emailCall.html;
 
-    // VERIFICACIÓN DE SEGURIDAD:
-    // El contenido malicioso debe estar escapado (convertido a entidades HTML)
+    // VERIFICACIÓN:
+    // El contenido malicioso debe estar convertido a entidades HTML
     // y NO debe ejecutarse como código
     
-    // Verificar que NO hay tags HTML maliciosos sin escapar
     // Si estuviera vulnerable, aparecería "<script>alert" ejecutable
     expect(htmlContent).not.toMatch(/<script>alert\(/);
     

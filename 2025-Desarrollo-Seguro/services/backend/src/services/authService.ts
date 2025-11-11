@@ -57,7 +57,7 @@ class AuthService {
     });
     const link = `${process.env.FRONTEND_URL}/activate-user?token=${invite_token}&username=${user.username}`;
    
-    // Vulnerable: datos no sanitizados en plantilla (interpolación directa)
+    // Vulnerable: datos no sanitizados en plantilla
     // const template = `
     //   <html>
     //     <body>

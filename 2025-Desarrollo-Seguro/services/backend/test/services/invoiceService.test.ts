@@ -67,7 +67,7 @@ describe('AuthService.generateJwt', () => {
   });
   
   /**
-   * PRUEBA DE SEGURIDAD: SQL Injection Prevention
+   * SQL INJECTION PREVENTION
    * 
    * Esta prueba verifica que el sistema esté protegido contra SQL Injection
    * en la funcionalidad de listado de facturas. Un atacante podría intentar
