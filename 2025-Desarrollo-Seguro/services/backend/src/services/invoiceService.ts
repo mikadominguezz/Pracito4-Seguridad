@@ -15,7 +15,7 @@ interface InvoiceRow {
 
 class InvoiceService {
   // Vulnerable: SQL Injection mediante concatenación directa en andWhereRaw
-  static async list( userId: string, status?: string, operator?: string): Promise<Invoice[]> {
+  /* static async list( userId: string, status?: string, operator?: string): Promise<Invoice[]> {
     let q = db<InvoiceRow>('invoices').where({ userId: userId });
     if (status) q = q.andWhereRaw(" status "+ operator + " '"+ status +"'");
     const rows = await q.select();
@@ -27,10 +27,10 @@ class InvoiceService {
       status: row.status} as Invoice
     ));
     return invoices;
-  }
+  } */
 
   // Mitigación: Validación de parámetros y consultas parametrizadas
-  /* static async list(userId: string, status?: string, operator?: string): Promise<Invoice[]> {
+  static async list(userId: string, status?: string, operator?: string): Promise<Invoice[]> {
     let q = db<InvoiceRow>("invoices").where({ userId: userId })
 
     if (status && operator) {
@@ -62,7 +62,7 @@ class InvoiceService {
         }) as Invoice,
     )
     return invoices
-  } */
+  }
 
 
   static async setPaymentCard(
