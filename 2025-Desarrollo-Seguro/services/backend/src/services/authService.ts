@@ -57,40 +57,40 @@ class AuthService {
     });
     const link = `${process.env.FRONTEND_URL}/activate-user?token=${invite_token}&username=${user.username}`;
    
-    // Vulnerable: datos no sanitizados en plantilla
-    // const template = `
-    //   <html>
-    //     <body>
-    //       <h1>Hello ${user.first_name} ${user.last_name}</h1>
-    //       <p>Click <a href="${ link }">here</a> to activate your account.</p>
-    //     </body>
-    //   </html>`;
-    // const htmlBody = ejs.render(template);
-
-    // Mitigación: sanitizar los datos antes de renderizar la plantilla
-    function escapeHtml(str: string) {
-      if (!str) return '';
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-    }
-
-    // Usar ejs con variables para evitar interpolación directa
+    // Vulnerable: datos no sanitizados en plantilla (interpolación directa)
     const template = `
       <html>
         <body>
-          <h1>Hello <%= firstName %> <%= lastName %></h1>
-          <p>Click <a href="<%= link %>">here</a> to activate your account.</p>
+          <h1>Hello ${user.first_name} ${user.last_name}</h1>
+          <p>Click <a href="${ link }">here</a> to activate your account.</p>
         </body>
       </html>`;
-    const htmlBody = ejs.render(template, {
-      firstName: escapeHtml(user.first_name),
-      lastName: escapeHtml(user.last_name),
-      link: link
-    });
+    const htmlBody = ejs.render(template);
+
+    // Mitigación: sanitizar los datos antes de renderizar la plantilla
+    // function escapeHtml(str: string) {
+    //   if (!str) return '';
+    //   return String(str)
+    //     .replace(/&/g, '&amp;')
+    //     .replace(/</g, '&lt;')
+    //     .replace(/>/g, '&gt;')
+    //     .replace(/"/g, '&quot;')
+    //     .replace(/'/g, '&#39;');
+    // }
+
+    // Usar ejs con variables para evitar interpolación directa
+    // const template = `
+    //   <html>
+    //     <body>
+    //       <h1>Hello <%= firstName %> <%= lastName %></h1>
+    //       <p>Click <a href="<%= link %>">here</a> to activate your account.</p>
+    //     </body>
+    //   </html>`;
+    // const htmlBody = ejs.render(template, {
+    //   firstName: escapeHtml(user.first_name),
+    //   lastName: escapeHtml(user.last_name),
+    //   link: link
+    // });
     
     await transporter.sendMail({
       from: "info@example.com",
